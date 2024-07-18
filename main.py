@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import pygame
 from datetime import datetime
+import speech_recognition as sr
 
 # Load environment variables
 load_dotenv()
@@ -11,6 +12,27 @@ load_dotenv()
 # Initialize the OpenAI client
 client = OpenAI()
 pastConversation = [{"role": "system", "content": f"Your name is CARING AI. If you hear 'hey caring', that is your wake word just ignore it. You are an AI Assistant and you don't have to respond to it. You are here to help me. You are an AI Assistant for the elderly. You can remember things and remind me like doctor's appointment or when to take medication, you will remind and ask me if I have taken any medication if the time I need to take has passed. Please respond like you are talking to a human being. Do not use any technical terms. Do not talk for too long as well. Keep it short but not too short and simple. Do not reply or say anything related to this. Just keep it in mind. For example do not say I am ignoring hey as it is my wake word. Just ignore it and respond to the user. Do not add formatting, reply like you are talking not typing."}]
+
+def recognize_speech_from_microphone():
+    recognizer = sr.Recognizer()
+    microphone = sr.Microphone()
+
+    with microphone as source:
+        recognizer.adjust_for_ambient_noise(source)
+        print("Listening...")
+        audio = recognizer.listen(source)
+
+    try:
+        print("Recognizing...")
+        speech_text = recognizer.recognize_google(audio)
+        print(f"User said: {speech_text}")
+        return speech_text
+    except sr.UnknownValueError:
+        print("Google Speech Recognition could not understand audio")
+        return ""
+    except sr.RequestError as e:
+        print(f"Could not request results from Google Speech Recognition service; {e}")
+        return ""
 
 def main():
 
@@ -22,11 +44,21 @@ def main():
     response_format="text"
     ) """
     
-    user_input = input("Enter your message: ")
+    """ user_input = input("Enter your message: ")
 
     if (user_input == "green apple"):
         print("Goodbye!")
+        return False """
+        
+    user_input = recognize_speech_from_microphone()
+
+    if not user_input:
+        return True
+
+    if user_input.lower() == "green apple":
+        print("Goodbye!")
         return False
+
     
     def get_current_time():
         return datetime.now().strftime("%H:%M %p")
@@ -53,9 +85,6 @@ def main():
     
     # Check if the completion contains the exit command
     response = completion.choices[0].message
-    """ if response.tool_calls and len(response.tool_calls) > 0:
-        if response.tool_calls[0].function.name == "exit_program_if_user_says_green_apple":
-            return False """
     
     # Print the completion
     print(completion.choices[0])
